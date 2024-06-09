@@ -1,6 +1,8 @@
 package com.productviewer
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -9,18 +11,20 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.productviewer.adapters.ProductListAdapter
 import com.productviewer.databinding.ActivityMainBinding
+import com.productviewer.datamodels.ProductModel
 import com.productviewer.viewmodels.MainActivityViewModel
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    lateinit var recyclerAdapter: ProductListAdapter
     private lateinit var viewModel: MainActivityViewModel
+    private lateinit var recyclerAdapter: ProductListAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,38 +40,51 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        initRecyclerview()
-        initViewModel()
+        // Initialize RecyclerView
+        initRecyclerView()
+
+        // Initialize ViewModel
+        viewModel = ViewModelProvider(this).get(MainActivityViewModel::class.java)
+
+        // Observe LiveData from ViewModel
+        viewModel.getLiveDataObserver().observe(this) { productModel ->
+            productModel?.let { updateRecyclerView(it) }
+        }
+
+        // Check for internet connection
+        if (isNetworkAvailable()) {
+            // If internet is available, call API to fetch initial data
+            viewModel.callAPI()
+        } else {
+            // If no internet, load cached data
+            viewModel.loadCachedProducts()
+
+            binding.productLoading.visibility = View.GONE
+            binding.productListRecyclerview.visibility = View.VISIBLE
+
+            // Show toast message
+            // Toast.makeText(this, "No internet connection. Displaying cached data.", Toast.LENGTH_SHORT).show()
+        }
+
+        // Setup pagination
         setupPagination()
     }
 
-    private fun initRecyclerview() {
+    private fun initRecyclerView() {
         recyclerAdapter = ProductListAdapter(this)
-        binding.productListRecyclerview.adapter = recyclerAdapter
-        binding.productListRecyclerview.layoutManager = LinearLayoutManager(this)
+        binding.productListRecyclerview.apply {
+            adapter = recyclerAdapter
+            layoutManager = LinearLayoutManager(this@MainActivity)
+        }
     }
 
     @SuppressLint("NotifyDataSetChanged")
-    private fun initViewModel() {
-        viewModel = ViewModelProvider(this)[MainActivityViewModel::class.java]
-        viewModel.getLiveDataObserver().observe(this) {
-            if (it !== null) {
-                if (recyclerAdapter.itemCount == 0) {
-
-                    recyclerAdapter.setProductList(it)
-                } else {
-                    recyclerAdapter.addProductList(it.products)
-                }
-
-                recyclerAdapter.notifyDataSetChanged()
-            } else {
-                Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show()
-                Log.d("TAG", "Error converting result ")
-            }
-            binding.productLoading.visibility = View.GONE
-            binding.productListRecyclerview.visibility = View.VISIBLE
-        }
-        viewModel.callAPI()
+    private fun updateRecyclerView(productModel: ProductModel) {
+        binding.productLoading.visibility = View.GONE
+        binding.productListRecyclerview.visibility = View.VISIBLE
+        // Update RecyclerView with new data
+        recyclerAdapter.setProductList(productModel)
+        recyclerAdapter.notifyDataSetChanged()
     }
 
     private fun setupPagination() {
@@ -87,5 +104,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connectivityManager.activeNetworkInfo
+        return networkInfo != null && networkInfo.isConnected
     }
 }
