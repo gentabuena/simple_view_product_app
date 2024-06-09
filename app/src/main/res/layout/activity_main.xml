@@ -23,6 +23,18 @@
         android:padding="10dp"
         />
 
+    <ProgressBar
+        android:id="@+id/productLoading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/productTitle"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="300dp"
+        android:layout_marginEnd="0dp"
+        />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/productListRecyclerview"
         android:layout_width="match_parent"
@@ -30,6 +42,8 @@
         android:layout_below="@+id/productTitle"
         android:layout_alignParentBottom="true"
         android:layout_marginTop="10dp"
-        android:layout_marginBottom="0dp" />
+        android:layout_marginBottom="0dp" 
+        android:visibility="gone"
+        />
 
 </RelativeLayout>

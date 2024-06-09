@@ -3,6 +3,7 @@ package com.productviewer
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -52,15 +53,19 @@ class MainActivity : AppCompatActivity() {
         viewModel.getLiveDataObserver().observe(this) {
             if (it !== null) {
                 if (recyclerAdapter.itemCount == 0) {
+
                     recyclerAdapter.setProductList(it)
                 } else {
                     recyclerAdapter.addProductList(it.products)
                 }
+
                 recyclerAdapter.notifyDataSetChanged()
             } else {
                 Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show()
                 Log.d("TAG", "Error converting result ")
             }
+            binding.productLoading.visibility = View.GONE
+            binding.productListRecyclerview.visibility = View.VISIBLE
         }
         viewModel.callAPI()
     }
